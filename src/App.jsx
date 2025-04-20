@@ -2,52 +2,127 @@ import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import Search from './components/Search'
+import Spinner from './components/Spinner'
+import MovieCard from './components/MovieCard'
 
 
-const Card = ({ title })=> {
 
-  const [count, setCount] = useState(0);
+// Rapit API
+// const API_BASE_URL = "https://tmdb-movies-and-tv-shows-api-by-apirobots.p.rapidapi.com/v1/tmdb"
+// const API_KEY = import.meta.env.VITE_API_KEY;
+// const API_HOST = "tmdb-movies-and-tv-shows-api-by-apirobots.p.rapidapi.com"
+//
+// const API_OPTIONS = {
+//   method: 'GET',
+//   headers: {
+//     accept: 'application/json',
+//     'x-rapidapi-key': import.meta.env.VITE_API_KEY,
+// 		'x-rapidapi-host': API_HOST
+//   }
+// }
 
-  const [hasLiked, setHasLiked] = useState(false);
 
-  useEffect(() => {
-    console.log('Component mounted');
+// TMDB API
+const API_BASE_URL = 'https://api.themoviedb.org/3';
 
-  }, [hasLiked]);
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 
-  useEffect(() => {
-    console.log('Card rendered');
+const API_OPTIONS = {
+  method: 'GET',
+  headers: {
+    accept: 'application/json',
+    Authorization: `Bearer ${API_KEY}`
   }
-  , []);
-
-
-  return (
-    <div className="card" onClick={() => setCount((prevstate) => prevstate + 1)}>
-      <h2>{title} - {count}</h2>
-      <button
-        onClick={() => setHasLiked(!hasLiked)}>
-          {hasLiked ? "Liked" : 'Like'}
-      </button>
-
-    </div>
-  )
 }
 
-
-
 const App = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [movieList, setMovieList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchMovies = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      // const endpoint = `${API_BASE_URL}?page=1`;
+      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+
+      const response = await fetch(endpoint, API_OPTIONS);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+
+      const data = await response.json();
+      console.log("Response:", data);
+      // alert(response.json());
+      if (data.Response === "False") {
+        setErrorMessage(data.Error || "No results found");
+        setMovieList([]);
+        return;
+        
+      }
+
+      setMovieList(data.results || []);
+
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+      setErrorMessage("Failed to fetch movies. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
+  useEffect(() => {
+    console.log('App mounted');
+    fetchMovies();
+  } , []);
+
+
   
   return (
-    <>
-      {/* <h2 className='card'>
-          Hello World</h2> */}
-      <div className="card-container">
-        <Card title="ASH" />
-        <Card title="cash" />
-      </div>
+      <main>
+        <div className='pattern'/>
+        <div className='wrapper'>
+          <header>
+            <img src="./hero.png" alt="hero" />
+            <h1>Find <span className='text-gradient'>Movies</span> You Enjoy without the hassle</h1>
+            <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          </header>
+
+          
+          <h1 className='text-white'>{searchTerm}</h1>
+          <section className='all-movies'>
+            <h2 className='mt-[20px]'>All Movies</h2>
+            {
+              isLoading ? (
+                <Spinner />
+              ) : errorMessage ?  (
+                <p className='text-red-500'>{errorMessage}</p>
+              ) : (
+                
+                <ul>
+                  {movieList.map((movie, idx) => (
+                    // <p key={idx} className='text-white'>{movie.title}</p>
+                    <MovieCard key={movie.id} movie={movie} />
+                    
+
+                  ))}
+                </ul>
+              )
+            }
+            {errorMessage && <p className='text-red-500'>{errorMessage}</p>}
+
+          </section>
+        </div>
 
 
-    </>
+        
+      </main>
   )
 }
 
