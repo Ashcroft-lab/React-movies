@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDebounce } from 'react-use';
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
@@ -41,14 +42,19 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [movieList, setMovieList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const fetchMovies = async () => {
+  useDebounce( () => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
+
+  const fetchMovies = async (query="") => {
     setIsLoading(true);
     setErrorMessage("");
 
     try {
       // const endpoint = `${API_BASE_URL}?page=1`;
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query
+        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
 
       const response = await fetch(endpoint, API_OPTIONS);
       if (!response.ok) {
@@ -79,8 +85,8 @@ const App = () => {
 
   useEffect(() => {
     console.log('App mounted');
-    fetchMovies();
-  } , []);
+    fetchMovies(debouncedSearchTerm);
+  } , [debouncedSearchTerm]);
 
 
   
@@ -93,9 +99,6 @@ const App = () => {
             <h1>Find <span className='text-gradient'>Movies</span> You Enjoy without the hassle</h1>
             <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           </header>
-
-          
-          <h1 className='text-white'>{searchTerm}</h1>
           <section className='all-movies'>
             <h2 className='mt-[20px]'>All Movies</h2>
             {
